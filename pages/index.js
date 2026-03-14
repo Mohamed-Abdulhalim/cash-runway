@@ -2,7 +2,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import Verdict from '../components/Verdict'
 import RiskItems from '../components/RiskItems'
-import { RefreshCw, LogOut, Link } from 'lucide-react'
+import { RefreshCw, LogOut } from 'lucide-react'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -20,6 +20,10 @@ export default function Home() {
     setError(null)
     try {
       const res = await fetch('/api/runway/compute')
+      if (res.status === 404) {
+        setData(null) // no snapshot yet, show connect Xero prompt
+        return
+      }
       if (!res.ok) throw new Error('Failed to fetch runway')
       const json = await res.json()
       setData(json)
@@ -98,10 +102,9 @@ export default function Home() {
           <div className="rounded-2xl border border-dashed border-gray-300 p-10 text-center">
             <p className="text-gray-500 mb-4">Connect your Xero account to get started</p>
             
-              href="/api/auth/xero"
+              <a href="/api/auth/xero"
               className="inline-flex items-center gap-2 py-2.5 px-5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition"
             >
-              <Link size={15} />
               Connect Xero
             </a>
           </div>

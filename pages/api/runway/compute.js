@@ -14,6 +14,10 @@ export default async function handler(req, res) {
       last_synced_at: snapshot.last_synced_at
     })
   } catch (err) {
+    // no snapshot yet means user hasn't connected Xero
+    if (err.message.includes('coerce') || err.message.includes('getSnapshot')) {
+      return res.status(404).json({ error: 'no_snapshot' })
+    }
     console.error('Runway compute error:', err.message)
     res.status(500).json({ error: err.message })
   }
