@@ -10,6 +10,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
+  const [bankBalance, setBankBalance] = useState(0)
 
   useEffect(() => {
     if (session) fetchRunway()
@@ -21,7 +22,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/runway/compute')
       if (res.status === 404) {
-        setData(null) // no snapshot yet, show connect Xero prompt
+        setData(null)
         return
       }
       if (!res.ok) throw new Error('Failed to fetch runway')
@@ -45,6 +46,21 @@ export default function Home() {
       setError(err.message)
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function updateBalance() {
+    setError(null)
+    try {
+      const res = await fetch('/api/xero/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manual_balance: parseFloat(bankBalance) || 0 })
+      })
+      if (!res.ok) throw new Error('Update failed')
+      await fetchRunway()
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -128,6 +144,28 @@ export default function Home() {
           <>
             <Verdict verdict={data.verdict} cash_at_end={data.cash_at_end} />
             <RiskItems items={data.risk_items} />
+
+            <div className="mt-6 p-4 bg-white rounded-xl border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current bank balance
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={bankBalance}
+                  onChange={e => setBankBalance(e.target.value)}
+                  placeholder="Enter your current balance"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={updateBalance}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+
             <p className="text-xs text-gray-400 text-center mt-6">
               Last synced: {data.last_synced_at
                 ? new Date(data.last_synced_at).toLocaleString()

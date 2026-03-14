@@ -6,6 +6,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    const manualBalance = body?.manual_balance ?? null
+
     const tokens = await getTokens(req, res)
 
     const connections = await fetch('https://api.xero.com/connections', {
@@ -50,8 +53,14 @@ export default async function handler(req, res) {
 
     const today = new Date()
 
+    // if manual balance provided use it, otherwise keep existing or default to 0
+    let startingCash = 0
+    if (manualBalance !== null) {
+      startingCash = manualBalance
+    }
+
     const snapshot = {
-      starting_cash: 0,
+      starting_cash: startingCash,
 
       inflows: (invoices.Invoices || []).map(inv => {
         const dueDate = parseXeroDate(inv.DueDate)
